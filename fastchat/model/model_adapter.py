@@ -416,7 +416,10 @@ class OasstPythiaAdapter(BaseModelAdapter):
     use_fast_tokenizer = True
 
     def match(self, model_path: str):
-        return "oasst" in model_path and "pythia" in model_path
+        return (
+            all(substring not in model_path for substring in ["pythia", "h2ogpt"])
+            and "oasst" in model_path
+        )
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("oasst_pythia")
@@ -434,7 +437,10 @@ class OasstLLaMAAdapter(BaseModelAdapter):
     def match(self, model_path: str):
         if "OpenAssistant-SFT-7-Llama-30B-HF" in model_path:
             return True
-        return "oasst" in model_path and "pythia" not in model_path
+        return (
+            all(substring not in model_path for substring in ["pythia", "h2ogpt"])
+            and "oasst" in model_path
+        )
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("oasst_llama")
@@ -660,13 +666,32 @@ class RedPajamaINCITEAdapter(BaseModelAdapter):
 
 
 class H2OGPTAdapter(BaseModelAdapter):
-    """The model adapter for h2oai/h2ogpt-gm-oasst1-en-2048-open-llama-7b"""
+    """The model adapter for h2ogpt"""
+
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+        print("LOADING")
+        revision = from_pretrained_kwargs.get("revision", "main")
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_path,
+            use_fast=self.use_fast_tokenizer,
+            revision=revision,
+            trust_remote_code=True
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path, low_cpu_mem_usage=True, trust_remote_code=True, **from_pretrained_kwargs
+        )
+        return model, tokenizer
 
     def match(self, model_path: str):
         return "h2ogpt" in model_path.lower()
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
-        return get_conv_template("h2ogpt")
+        if "-gm-" in model_path and "falcon" in model_path:
+            return get_conv_template("h2ogpt-gm-falcon")
+        elif "-gm-" in model_path and "open-llama" in model_path:
+            return get_conv_template("h2ogpt-gm-open-llama")
+        else:
+            return get_conv_template("one_shot")
 
 
 class RobinAdapter(BaseModelAdapter):
