@@ -543,16 +543,27 @@ register_conv_template(
     )
 )
 
-# h2oGPT default template
 register_conv_template(
     Conversation(
-        name="h2ogpt",
+        name="h2ogpt-gm-open-llama",
         system="",
         roles=("<|prompt|>", "<|answer|>"),
         messages=(),
         offset=0,
         sep_style=SeparatorStyle.NO_COLON_SINGLE,
         sep="</s>",
+    )
+)
+
+register_conv_template(
+    Conversation(
+        name="h2ogpt-gm-falcon",
+        system="",
+        roles=("<|prompt|>", "<|answer|>"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.NO_COLON_SINGLE,
+        sep="<|endoftext|>",
     )
 )
 
