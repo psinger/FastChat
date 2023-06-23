@@ -99,7 +99,10 @@ def get_model_answers(
                 conv.append_message(conv.roles[0], qs)
                 conv.append_message(conv.roles[1], None)
                 prompt = conv.get_prompt()
-                input_ids = tokenizer([prompt]).input_ids
+                #print("PROMPT:", prompt)
+                tokens = tokenizer([prompt])
+                input_ids = tokens.input_ids
+                attention_mask = tokens.attention_mask
 
                 if temperature < 1e-4:
                     do_sample = False
@@ -107,7 +110,8 @@ def get_model_answers(
                     do_sample = True
 
                 output_ids = model.generate(
-                    torch.as_tensor(input_ids).cuda(),
+                    input_ids=torch.as_tensor(input_ids).cuda(),
+                    attention_mask=torch.as_tensor(attention_mask).cuda(),
                     do_sample=do_sample,
                     temperature=temperature,
                     max_new_tokens=max_new_token,
