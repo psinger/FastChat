@@ -15,6 +15,8 @@ class SeparatorStyle(Enum):
     ADD_COLON_SPACE_SINGLE = auto()
     NO_COLON_SINGLE = auto()
     ADD_NEW_LINE_SINGLE = auto()
+    CHATGLM = auto()
+    CHATML = auto()
     DOLLY = auto()
     RWKV = auto()
     PHOENIX = auto()
@@ -99,6 +101,32 @@ class Conversation:
                     ret += "\n\n"
                 else:
                     ret += role + ":"
+            return ret
+        elif self.sep_style == SeparatorStyle.CHATGLM:
+            # source: https://huggingface.co/THUDM/chatglm-6b/blob/1d240ba371910e9282298d4592532d7f0f3e9f3e/modeling_chatglm.py#L1302-L1308
+            if self.system:
+                ret = self.system + "\n"
+            else:
+                ret = ""
+
+            if len(self.messages) <= 2:
+                return ret + self.messages[0][1]
+
+            for i, (role, message) in enumerate(self.messages):
+                if i % 2 == 0:
+                    ret += f"[Round {i//2}]\n"
+                if message:
+                    ret += f"{role}：{message}\n"
+                else:
+                    ret += f"{role}："
+            return ret
+        elif self.sep_style == SeparatorStyle.CHATML:
+            ret = "" if self.system == "" else self.system + self.sep + "\n"
+            for role, message in self.messages:
+                if message:
+                    ret += role + "\n" + message + self.sep + "\n"
+                else:
+                    ret += role + "\n"
             return ret
         elif self.sep_style == SeparatorStyle.DOLLY:
             seps = [self.sep, self.sep2]
@@ -195,7 +223,9 @@ conv_templates: Dict[str, Conversation] = {}
 def register_conv_template(template: Conversation, override: bool = False):
     """Register a new conversation template."""
     if not override:
-        assert template.name not in conv_templates, f"{name} has been registered."
+        assert (
+            template.name not in conv_templates
+        ), f"{template.name} has been registered."
     conv_templates[template.name] = template
 
 
@@ -289,8 +319,22 @@ register_conv_template(
         roles=("### Instruction", "### Response"),
         messages=(),
         offset=0,
-        sep_style=SeparatorStyle.ADD_COLON_SINGLE,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
         sep="\n\n",
+        sep2="</s>",
+    )
+)
+
+# ChatGLM default template
+register_conv_template(
+    Conversation(
+        name="chatglm",
+        system="",
+        roles=("问", "答"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.CHATGLM,
+        sep="\n",
     )
 )
 
@@ -468,17 +512,16 @@ register_conv_template(
 # MPT default template
 register_conv_template(
     Conversation(
-        name="mpt",
+        name="mpt-7b-chat",
         system="""<|im_start|>system
 - You are a helpful assistant chatbot trained by MosaicML.
 - You answer questions.
 - You are excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.
-- You are more than just an information source, you are also able to write poetry, short stories, and make jokes.
-""",
+- You are more than just an information source, you are also able to write poetry, short stories, and make jokes.""",
         roles=("<|im_start|>user", "<|im_start|>assistant"),
         messages=(),
         offset=0,
-        sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
+        sep_style=SeparatorStyle.CHATML,
         sep="<|im_end|>",
         stop_token_ids=[50278, 0],
     )
@@ -489,13 +532,27 @@ register_conv_template(
     Conversation(
         name="mpt-30b-chat",
         system="""<|im_start|>system
-A conversation between a user and an LLM-based AI assistant. The assistant gives helpful and honest answers.
-""",
+A conversation between a user and an LLM-based AI assistant. The assistant gives helpful and honest answers.""",
         roles=("<|im_start|>user", "<|im_start|>assistant"),
         messages=(),
         offset=0,
-        sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
+        sep_style=SeparatorStyle.CHATML,
         sep="<|im_end|>",
+        stop_token_ids=[50278, 0],
+    )
+)
+
+# MPT-30b-instruct default template
+# reference: https://huggingface.co/mosaicml/mpt-30b-instruct#formatting
+register_conv_template(
+    Conversation(
+        name="mpt-30b-instruct",
+        system="Below is an instruction that describes a task. Write a response that appropriately completes the request.",
+        roles=("### Instruction", "### Response"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_NEW_LINE_SINGLE,
+        sep="\n\n",
         stop_token_ids=[50278, 0],
     )
 )
