@@ -585,22 +585,22 @@ register_conv_template(
 )
 
 # StableLM Alpha default template
-register_conv_template(
-    Conversation(
-        name="stablelm",
-        system_template="<|SYSTEM|>{system_message}",
-        system_message="""# StableLM Tuned (Alpha version)
-- StableLM is a helpful and harmless open-source AI language model developed by StabilityAI.
-- StableLM is excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.
-- StableLM is more than just an information source, StableLM is also able to write poetry, short stories, and make jokes.
-- StableLM will refuse to participate in anything that could harm a human.
-""",
-        roles=("<|USER|>", "<|ASSISTANT|>"),
-        sep_style=SeparatorStyle.NO_COLON_SINGLE,
-        sep="",
-        stop_token_ids=[50278, 50279, 50277, 1, 0],
-    )
-)
+# register_conv_template(
+#     Conversation(
+#         name="stablelm",
+#         system_template="<|SYSTEM|>{system_message}",
+#         system_message="""# StableLM Tuned (Alpha version)
+# - StableLM is a helpful and harmless open-source AI language model developed by StabilityAI.
+# - StableLM is excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.
+# - StableLM is more than just an information source, StableLM is also able to write poetry, short stories, and make jokes.
+# - StableLM will refuse to participate in anything that could harm a human.
+# """,
+#         roles=("<|USER|>", "<|ASSISTANT|>"),
+#         sep_style=SeparatorStyle.NO_COLON_SINGLE,
+#         sep="",
+#         stop_token_ids=[50278, 50279, 50277, 1, 0],
+#     )
+# )
 
 # Baize default template
 register_conv_template(
@@ -821,15 +821,29 @@ register_conv_template(
     )
 )
 
-# h2oGPT default template
+
 register_conv_template(
     Conversation(
-        name="h2ogpt",
+        name="h2o",
         roles=("<|prompt|>", "<|answer|>"),
         sep_style=SeparatorStyle.NO_COLON_SINGLE,
         sep="</s>",
+        sep2="</s>",
     )
 )
+
+
+register_conv_template(
+    Conversation(
+        name="stablelm",
+        roles=("<|user|>", "<|assistant|>"),
+        sep_style=SeparatorStyle.CHATML,
+        sep="<|endoftext|>",
+        sep2="<|endoftext|>",
+        stop_token_ids=[100257],
+    )
+)
+
 
 # Robin default template
 register_conv_template(

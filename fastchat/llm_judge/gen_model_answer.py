@@ -27,6 +27,7 @@ def run_eval(
     answer_file,
     max_new_token,
     num_choices,
+    seed,
     num_gpus_per_model,
     num_gpus_total,
     max_gpu_memory,
@@ -59,6 +60,7 @@ def run_eval(
                 answer_file,
                 max_new_token,
                 num_choices,
+                seed,
                 num_gpus_per_model,
                 max_gpu_memory,
                 dtype=dtype,
@@ -78,6 +80,7 @@ def get_model_answers(
     answer_file,
     max_new_token,
     num_choices,
+    seed,
     num_gpus_per_model,
     max_gpu_memory,
     dtype,
@@ -103,15 +106,19 @@ def get_model_answers(
 
         choices = []
         for i in range(num_choices):
-            torch.manual_seed(i)
-            conv = get_conversation_template(model_id)
+            torch.manual_seed(seed+i)
+            conv = get_conversation_template(model_path)
             turns = []
             for j in range(len(question["turns"])):
                 qs = question["turns"][j]
                 conv.append_message(conv.roles[0], qs)
                 conv.append_message(conv.roles[1], None)
                 prompt = conv.get_prompt()
-                input_ids = tokenizer([prompt]).input_ids
+                tokens = tokenizer([prompt])
+                input_ids = tokens.input_ids
+                attention_mask = tokens.attention_mask
+
+                temperature = 0.0
 
                 if temperature < 1e-4:
                     do_sample = False
@@ -121,9 +128,11 @@ def get_model_answers(
                 # some models may error out when generating long outputs
                 try:
                     output_ids = model.generate(
-                        torch.as_tensor(input_ids).cuda(),
-                        do_sample=do_sample,
-                        temperature=temperature,
+                        input_ids=torch.as_tensor(input_ids).cuda(),
+                        attention_mask=torch.as_tensor(attention_mask).cuda(),
+                        do_sample=False,
+                        temperature=0.0,
+                        repetition_penalty=1.1,
                         max_new_tokens=max_new_token,
                     )
                     if model.config.is_encoder_decoder:
@@ -243,6 +252,12 @@ if __name__ == "__main__":
         help="How many completion choices to generate.",
     )
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=1,
+        help="Seed.",
+    )
+    parser.add_argument(
         "--num-gpus-per-model",
         type=int,
         default=1,
@@ -294,6 +309,7 @@ if __name__ == "__main__":
         answer_file=answer_file,
         max_new_token=args.max_new_token,
         num_choices=args.num_choices,
+        seed=args.seed,
         num_gpus_per_model=args.num_gpus_per_model,
         num_gpus_total=args.num_gpus_total,
         max_gpu_memory=args.max_gpu_memory,
